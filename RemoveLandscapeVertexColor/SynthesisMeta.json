@@ -1,0 +1,8 @@
+{
+  "Nickname": "Remove Landscape Vertex Color",
+  "Visibility": "Visible",
+  "OneLineDescription": "Removes vertex coloring from landscapes.",
+  "LongDescription": "",
+  "PreferredAutoVersioning": "Default",
+  "RequiredMods": []
+}
