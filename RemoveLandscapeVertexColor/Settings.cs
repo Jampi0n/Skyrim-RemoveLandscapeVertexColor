@@ -36,25 +36,25 @@ namespace RemoveLandscapeVertexColor {
             } catch(Exception) { }
         }
 
-        public static byte Evaluate(Expression e, ReadOnlySpan<byte> colors) {
+        public static byte Evaluate(Expression e, Noggog.P3UInt8 colors) {
             object result;
             lock(e) {
-                e.Parameters["R"] = (int)colors[0];
-                e.Parameters["G"] = (int)colors[1];
-                e.Parameters["B"] = (int)colors[2];
+                e.Parameters["R"] = (int)colors.X;
+                e.Parameters["G"] = (int)colors.Y;
+                e.Parameters["B"] = (int)colors.Z;
                 result = e.Evaluate();
             }
 
             return (byte)Math.Max(0, Math.Min(255, (double) result));
         }
 
-        public byte Red(ReadOnlySpan<byte> colors) {
+        public byte Red(Noggog.P3UInt8 colors) {
             return constR.GetValueOrDefault(Evaluate(_r!, colors));
         }
-        public byte Green(ReadOnlySpan<byte> colors) {
+        public byte Green(Noggog.P3UInt8 colors) {
             return constG.GetValueOrDefault(Evaluate(_g!, colors));
         }
-        public byte Blue(ReadOnlySpan<byte> colors) {
+        public byte Blue(Noggog.P3UInt8 colors) {
             return constB.GetValueOrDefault(Evaluate(_b!, colors));
         }
     }
@@ -79,7 +79,7 @@ namespace RemoveLandscapeVertexColor {
     }
     public class Settings {
         [SynthesisTooltip("Removes all vertex colors. Other settings will be ignored.")]
-        public bool removeAllVertexVertexColors = true;
+        public bool removeAllVertexVertexColors = false;
 
         [SynthesisTooltip("Modify vertex colors individually.")]
         public Advanced advanced = new();

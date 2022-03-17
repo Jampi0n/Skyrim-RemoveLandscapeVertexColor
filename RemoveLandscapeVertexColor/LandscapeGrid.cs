@@ -38,15 +38,11 @@ namespace RemoveLandscapeVertexColor {
         }
 
         public void SetColor(byte r, byte g, byte b) {
-            var index = (x * 33 + y) * 3;
-            grid.vertexColorArray[index] = r;
-            grid.vertexColorArray[index + 1] = g;
-            grid.vertexColorArray[index + 2] = b;
+            grid.vertexColorArray[y, x] = new Noggog.P3UInt8(r, g, b);
         }
 
-        public ReadOnlySpan<byte> GetColor() {
-            var index = (x * 33 + y) * 3;
-            return grid.vertexColorArray.Slice(index, 3).Span;
+        public Noggog.P3UInt8 GetColor() {
+            return grid.vertexColorArray[y, x];
         }
 
         public static bool IsSnow(IPatcherState<ISkyrimMod, ISkyrimModGetter> state, IFormLink<ILandscapeTextureGetter>? textureLink) {
@@ -105,7 +101,7 @@ namespace RemoveLandscapeVertexColor {
     public class LandscapeGrid {
         private readonly ILandscape record;
         private readonly LandscapeVertex[,] grid;
-        public Noggog.MemorySlice<byte> vertexColorArray;
+        public Noggog.IArray2d<Noggog.P3UInt8> vertexColorArray;
 
         public static Tuple<int, int> QuadrantOffset(Quadrant quadrant) {
             return quadrant switch {
@@ -130,6 +126,7 @@ namespace RemoveLandscapeVertexColor {
                 }
             }
             Write();
+
         }
 
         public LandscapeGrid(ILandscape record) {
@@ -141,7 +138,10 @@ namespace RemoveLandscapeVertexColor {
                 }
             }
             foreach(var layer in this.record.Layers) {
-                var offset = QuadrantOffset(layer.Header!.Quadrant);
+                var quadrant = layer.Header!.Quadrant;
+                quadrant = (Quadrant)(byte)quadrant;
+                var offset = QuadrantOffset(quadrant);
+
                 if(layer is AlphaLayer alphaLayer) {
                     if(alphaLayer.AlphaLayerData != null) {
                         var data = alphaLayer.AlphaLayerData!.Value;
@@ -159,11 +159,11 @@ namespace RemoveLandscapeVertexColor {
                     }
                 }
             }
-            vertexColorArray = record.VertexColors!.Value;
+            vertexColorArray = record.VertexColors!;
         }
 
         public void Write() {
-            record.VertexColors = this.vertexColorArray;
+            
         }
     }
 }
