@@ -141,7 +141,9 @@ namespace RemoveLandscapeVertexColor {
                 }
             }
             foreach(var layer in this.record.Layers) {
-                var offset = QuadrantOffset(layer.Header!.Quadrant);
+                var quadrant = (Quadrant) (byte) layer.Header!.Quadrant;
+                var offset = QuadrantOffset(quadrant);
+
                 if(layer is AlphaLayer alphaLayer) {
                     if(alphaLayer.AlphaLayerData != null) {
                         var data = alphaLayer.AlphaLayerData!.Value;
