@@ -42,7 +42,7 @@ namespace RemoveLandscapeVertexColor {
                 var landscapeGetter = context.Record;
                 bool hasVertexColor = false;
                 try {
-                    if((landscapeGetter.DATA!.Value[0] & 2) == 2) {
+                    if(landscapeGetter.Flags!.Value.HasFlag(Landscape.Flag.VertexColors)) {
                         hasVertexColor = true;
                     } else {
                         Interlocked.Increment(ref skipCounter);
@@ -60,9 +60,7 @@ namespace RemoveLandscapeVertexColor {
                         landscape = context.GetOrAddAsOverride(patchMod);
                     }
                     if(settings.removeAllVertexVertexColors) {
-                        var data = landscape.DATA!.Value.ToArray();
-                        data[0] &= 253;
-                        landscape.DATA = new Noggog.MemorySlice<byte>(data);
+                        landscape.Flags = landscape.Flags!.Value & ~Landscape.Flag.VertexColors;
                         landscape.VertexColors = null;
                     } else {
                         var grid = new LandscapeGrid(landscape);

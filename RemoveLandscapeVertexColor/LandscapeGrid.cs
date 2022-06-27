@@ -38,15 +38,11 @@ namespace RemoveLandscapeVertexColor {
         }
 
         public void SetColor(byte r, byte g, byte b) {
-            var index = (x * 33 + y) * 3;
-            grid.vertexColorArray[index] = r;
-            grid.vertexColorArray[index + 1] = g;
-            grid.vertexColorArray[index + 2] = b;
+            grid.vertexColorArray[x, y] = new Noggog.P3UInt8(r, g, b);
         }
 
-        public ReadOnlySpan<byte> GetColor() {
-            var index = (x * 33 + y) * 3;
-            return grid.vertexColorArray.Slice(index, 3).Span;
+        public Noggog.P3UInt8 GetColor() {
+            return grid.vertexColorArray[x, y];
         }
 
         public static bool IsSnow(IPatcherState<ISkyrimMod, ISkyrimModGetter> state, IFormLink<ILandscapeTextureGetter>? textureLink) {
@@ -105,21 +101,21 @@ namespace RemoveLandscapeVertexColor {
     public class LandscapeGrid {
         private readonly ILandscape record;
         private readonly LandscapeVertex[,] grid;
-        public Noggog.MemorySlice<byte> vertexColorArray;
+        public Noggog.IArray2d<Noggog.P3UInt8> vertexColorArray;
 
         public static Tuple<int, int> QuadrantOffset(Quadrant quadrant) {
             return quadrant switch {
                 Quadrant.BottomLeft => new Tuple<int, int>(0, 0),
-                Quadrant.BottomRight => new Tuple<int, int>(0, 16),
-                Quadrant.TopLeft => new Tuple<int, int>(16, 0),
+                Quadrant.BottomRight => new Tuple<int, int>(16, 0),
+                Quadrant.TopLeft => new Tuple<int, int>(0, 16),
                 Quadrant.TopRight => new Tuple<int, int>(16, 16),
                 _ => new Tuple<int, int>(0, 0),
             };
         }
 
         public static Tuple<int, int> IntOffset(int pos) {
-            int x = pos / 17;
-            int y = pos - 17 * x;
+            int y = pos / 17;
+            int x = pos - 17 * y;
             return new Tuple<int, int>(x, y);
         }
 
@@ -130,6 +126,7 @@ namespace RemoveLandscapeVertexColor {
                 }
             }
             Write();
+
         }
 
         public LandscapeGrid(ILandscape record) {
@@ -141,7 +138,7 @@ namespace RemoveLandscapeVertexColor {
                 }
             }
             foreach(var layer in this.record.Layers) {
-                var quadrant = (Quadrant) (byte) layer.Header!.Quadrant;
+                var quadrant = layer.Header!.Quadrant;
                 var offset = QuadrantOffset(quadrant);
 
                 if(layer is AlphaLayer alphaLayer) {
@@ -161,11 +158,11 @@ namespace RemoveLandscapeVertexColor {
                     }
                 }
             }
-            vertexColorArray = record.VertexColors!.Value;
+            vertexColorArray = record.VertexColors!;
         }
 
         public void Write() {
-            record.VertexColors = this.vertexColorArray;
+            
         }
     }
 }
