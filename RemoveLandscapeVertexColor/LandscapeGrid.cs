@@ -1,15 +1,10 @@
 using System;
-using System.Linq;
 using Mutagen.Bethesda;
 using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Skyrim;
-using System.Threading.Tasks;
-using System.Threading;
 using System.Collections.Generic;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins;
-using Mutagen.Bethesda.FormKeys.SkyrimLE;
-using System.Data;
 
 namespace RemoveLandscapeVertexColor {
 
