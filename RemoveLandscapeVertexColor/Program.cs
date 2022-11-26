@@ -56,14 +56,14 @@ namespace RemoveLandscapeVertexColor {
                 }
                 if(hasVertexColor) {
                     ILandscape landscape;
-                    lock(myLock) {
-                        landscape = context.GetOrAddAsOverride(patchMod);
-                    }
                     if(settings.removeAllVertexVertexColors) {
+                        lock(myLock) {
+                            landscape = context.GetOrAddAsOverride(patchMod);
+                        }
                         landscape.Flags = landscape.Flags!.Value & ~Landscape.Flag.VertexColors;
                         landscape.VertexColors = null;
                     } else {
-                        var grid = new LandscapeGrid(landscape);
+                        var grid = new LandscapeGrid(context, state, myLock);
                         grid.Patch(state);
                     }
 

@@ -14,18 +14,18 @@ using System.Data;
 namespace RemoveLandscapeVertexColor {
 
     public class VertexAlphaLayer {
-        public readonly IFormLink<ILandscapeTextureGetter> texture;
+        public readonly IFormLinkGetter<ILandscapeTextureGetter> texture;
         public readonly float opacity;
 
-        public VertexAlphaLayer(IFormLink<ILandscapeTextureGetter> texture, float opacity) {
+        public VertexAlphaLayer(IFormLinkGetter<ILandscapeTextureGetter> texture, float opacity) {
             this.texture = texture;
             this.opacity = opacity;
         }
     }
     public class LandscapeVertex {
-        private static readonly Dictionary<IFormLink<ILandscapeTextureGetter>, bool> isSnowDict = new();
+        private static readonly Dictionary<IFormLinkGetter<ILandscapeTextureGetter>, bool> isSnowDict = new();
 
-        public IFormLink<ILandscapeTextureGetter>? baseTexture;
+        public IFormLinkGetter<ILandscapeTextureGetter>? baseTexture;
         public List<VertexAlphaLayer> layers = new();
         public readonly int x;
         public readonly int y;
@@ -37,15 +37,18 @@ namespace RemoveLandscapeVertexColor {
             this.y = y;
         }
 
-        public void SetColor(byte r, byte g, byte b) {
-            grid.vertexColorArray[x, y] = new Noggog.P3UInt8(r, g, b);
+        public bool SetColor(byte r, byte g, byte b) {
+            var prevColor = GetColor();
+            var newColor = new Noggog.P3UInt8(r, g, b);
+            grid.vertexColorArray[x, y] = newColor;
+            return !newColor.Equals(prevColor);
         }
 
         public Noggog.P3UInt8 GetColor() {
             return grid.vertexColorArray[x, y];
         }
 
-        public static bool IsSnow(IPatcherState<ISkyrimMod, ISkyrimModGetter> state, IFormLink<ILandscapeTextureGetter>? textureLink) {
+        public static bool IsSnow(IPatcherState<ISkyrimMod, ISkyrimModGetter> state, IFormLinkGetter<ILandscapeTextureGetter>? textureLink) {
             if(textureLink == null || textureLink.IsNull) {
                 return false;
             }
@@ -67,7 +70,7 @@ namespace RemoveLandscapeVertexColor {
             return isSnowDict.GetValueOrDefault(textureLink, false);
         }
 
-        public void Patch(IPatcherState<ISkyrimMod, ISkyrimModGetter> state) {
+        public bool Patch(IPatcherState<ISkyrimMod, ISkyrimModGetter> state) {
             float snow = 0f;
             float notSnow = 0f;
             var threshold = 0.2f;
@@ -95,12 +98,15 @@ namespace RemoveLandscapeVertexColor {
                 formula = Program.settings.advanced.standard;
             }
             var color = GetColor();
-            SetColor(formula.Red(color), formula.Green(color), formula.Blue(color));
+            return SetColor(formula.Red(color), formula.Green(color), formula.Blue(color));
         }
     }
     public class LandscapeGrid {
-        private readonly ILandscape record;
+        private readonly Mutagen.Bethesda.Plugins.Cache.IModContext<ISkyrimMod, ISkyrimModGetter, ILandscape, ILandscapeGetter> context;
+        private readonly IPatcherState<ISkyrimMod, ISkyrimModGetter> state;
+        private readonly ILandscapeGetter record;
         private readonly LandscapeVertex[,] grid;
+        private readonly object myLock;
         public Noggog.IArray2d<Noggog.P3UInt8> vertexColorArray;
 
         public static Tuple<int, int> QuadrantOffset(Quadrant quadrant) {
@@ -120,17 +126,23 @@ namespace RemoveLandscapeVertexColor {
         }
 
         public void Patch(IPatcherState<ISkyrimMod, ISkyrimModGetter> state) {
+            bool changed = false;
             for(int x = 0; x < 33; ++x) {
                 for(int y = 0; y < 33; ++y) {
-                    grid[x, y].Patch(state);
+                    var tmpChanged = grid[x, y].Patch(state);
+                    changed = changed || tmpChanged;
                 }
             }
-            Write();
-
+            if(changed) {
+                Write();
+            }
         }
 
-        public LandscapeGrid(ILandscape record) {
-            this.record = record;
+        public LandscapeGrid(Mutagen.Bethesda.Plugins.Cache.IModContext<ISkyrimMod, ISkyrimModGetter, ILandscape, ILandscapeGetter> context, IPatcherState<ISkyrimMod, ISkyrimModGetter> state, object myLock) {
+            this.context = context;
+            this.state = state;
+            this.myLock = myLock;
+            this.record = context.Record;
             this.grid = new LandscapeVertex[33, 33];
             for(int x = 0; x < 33; ++x) {
                 for(int y = 0; y < 33; ++y) {
@@ -158,11 +170,17 @@ namespace RemoveLandscapeVertexColor {
                     }
                 }
             }
-            vertexColorArray = record.VertexColors!;
+            var readOnlyArray = record.VertexColors!;
+            vertexColorArray = new Noggog.Array2d<Noggog.P3UInt8>(readOnlyArray.Width, readOnlyArray.Height);
+            vertexColorArray.SetTo(readOnlyArray);
         }
 
         public void Write() {
-            
+            ILandscape landscape;
+            lock(myLock) {
+                landscape = context.GetOrAddAsOverride(state.PatchMod);
+            }
+            landscape.VertexColors!.SetTo(vertexColorArray);
         }
     }
 }
