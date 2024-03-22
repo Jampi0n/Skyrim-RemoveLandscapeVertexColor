@@ -88,9 +88,9 @@ namespace RemoveLandscapeVertexColor {
             }
             RGBFormula formula;
             if(snow > threshold) {
-                formula = Program.settings.advanced.snow;
+                formula = Program.Settings.advanced.snow;
             } else {
-                formula = Program.settings.advanced.standard;
+                formula = Program.Settings.advanced.standard;
             }
             var color = GetColor();
             return SetColor(formula.Red(color), formula.Green(color), formula.Blue(color));
@@ -112,12 +112,6 @@ namespace RemoveLandscapeVertexColor {
                 Quadrant.TopRight => new Tuple<int, int>(16, 16),
                 _ => new Tuple<int, int>(0, 0),
             };
-        }
-
-        public static Tuple<int, int> IntOffset(int pos) {
-            int y = pos / 17;
-            int x = pos - 17 * y;
-            return new Tuple<int, int>(x, y);
         }
 
         public void Patch(IPatcherState<ISkyrimMod, ISkyrimModGetter> state) {
@@ -148,13 +142,13 @@ namespace RemoveLandscapeVertexColor {
                 var quadrant = layer.Header!.Quadrant;
                 var offset = QuadrantOffset(quadrant);
 
-                if(layer is AlphaLayer alphaLayer) {
+                if(layer is IAlphaLayerGetter alphaLayer) {
                     if(alphaLayer.AlphaLayerData != null) {
-                        var data = alphaLayer.AlphaLayerData!.Value;
-                        for(int i = 0; i < data.Length; i += 8) {
-                            var pos = IntOffset(BitConverter.ToInt16(data.Slice(i, 2)));
-                            var opacity = BitConverter.ToSingle(data.Slice(i + 4, 4));
-                            grid[pos.Item1 + offset.Item1, pos.Item2 + offset.Item2].layers.Add(new VertexAlphaLayer(layer.Header.Texture, opacity));
+
+                        foreach(var data in alphaLayer.AlphaLayerData) {
+                            
+                            var opacity = data.Opacity;
+                            grid[data.Position % 17 + offset.Item1, data.Position / 17 + offset.Item2].layers.Add(new VertexAlphaLayer(layer.Header.Texture, opacity));
                         }
                     }
                 } else {
@@ -166,8 +160,7 @@ namespace RemoveLandscapeVertexColor {
                 }
             }
             var readOnlyArray = record.VertexColors!;
-            vertexColorArray = new Noggog.Array2d<Noggog.P3UInt8>(readOnlyArray.Width, readOnlyArray.Height);
-            vertexColorArray.SetTo(readOnlyArray);
+            vertexColorArray = new Noggog.Array2d<Noggog.P3UInt8>(readOnlyArray);
         }
 
         public void Write() {

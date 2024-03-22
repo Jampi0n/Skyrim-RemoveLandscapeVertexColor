@@ -1,6 +1,5 @@
 using Mutagen.Bethesda.Synthesis.Settings;
 using NCalc;
-using System.Collections.Generic;
 using System;
 
 namespace RemoveLandscapeVertexColor {

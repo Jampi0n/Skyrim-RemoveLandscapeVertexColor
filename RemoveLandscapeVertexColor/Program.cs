@@ -9,8 +9,8 @@ using System.Collections.Generic;
 
 namespace RemoveLandscapeVertexColor {
     public class Program {
-        public static Lazy<Settings> _settings = null!;
-        public static Settings settings => _settings.Value;
+        private static Lazy<Settings> _settings = null!;
+        public static Settings Settings => _settings.Value;
 
         private static readonly List<string> log = new();
         public static async Task<int> Main(string[] args) {
@@ -24,10 +24,10 @@ namespace RemoveLandscapeVertexColor {
                 .Run(args);
         }
 
-        public static object myLock = new();
+        public static readonly object myLock = new();
 
         public static void RunPatch(IPatcherState<ISkyrimMod, ISkyrimModGetter> state) {
-            settings.Compile();
+            Settings.Compile();
             var contextArray = state.LoadOrder.PriorityOrder.Landscape().WinningContextOverrides(state.LinkCache);
             var size = contextArray.Count();
             int skipCounter = 0;
@@ -36,7 +36,7 @@ namespace RemoveLandscapeVertexColor {
             int progressCounter = 0;
             var patchMod = state.PatchMod;
             Parallel.ForEach(contextArray, new ParallelOptions() {
-                MaxDegreeOfParallelism = 8,
+                MaxDegreeOfParallelism = 1,
             }, (context) => {
                 Console.WriteLine("Patch: " + Interlocked.Increment(ref progressCounter) + "/" + size);
                 var landscapeGetter = context.Record;
@@ -56,7 +56,7 @@ namespace RemoveLandscapeVertexColor {
                 }
                 if(hasVertexColor) {
                     ILandscape landscape;
-                    if(settings.removeAllVertexVertexColors) {
+                    if(Settings.removeAllVertexVertexColors) {
                         lock(myLock) {
                             landscape = context.GetOrAddAsOverride(patchMod);
                         }
